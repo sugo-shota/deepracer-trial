@@ -3,14 +3,10 @@ def reward_function(params):
 
     abs_steering_angle = abs(params['steering_angle']) # 絶対値、0からの値。-15でも15でも15が返る。
     speed = params['speed']
-    track_width = params['track_width']
-    distance_from_center = params['distance_from_center']
-    track_width_half = track_width * 0.5
-
-    # 車体の中心がコース幅を超えていれば減点（少しだけ超えててもok）
-    if track_width_half - distance_from_center < -0.05:
-        return 1e-3
+    progress = params['progress']
+    steps = params['steps']
     
+    reward = shortest_path_reward(reward, progress, steps)
     reward = speed_reward(reward, speed)
     reward = prevent_zigzag(reward, abs_steering_angle)
     
@@ -40,6 +36,17 @@ def speed_reward(reward, speed):
     elif speed <= 4:
         reward *= 1.0
     else:
-        reward = reward
+        reward *= 1.0
 
+    return reward
+
+
+def shortest_path_reward(reward, progress, steps):
+    # 少ない歩幅でできるだけ遠い距離へ到達することに報酬を与える
+    COEFFICIENT = 150 # 係数
+    if steps > 0:
+        reward = ((progress * COEFFICIENT) / steps) ** 2
+    else:
+        reward = 1.0
+    
     return reward
