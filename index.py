@@ -1,31 +1,45 @@
 def reward_function(params):
-    reward = 0
+    reward = 1.0
 
-    all_wheels_on_track = params['all_wheels_on_track']
-    is_left_of_center = params['is_left_of_center']
-    steering_angle = params['steering_angle']
+    abs_steering_angle = abs(params['steering_angle']) # 絶対値、0からの値。-15でも15でも15が返る。
     speed = params['speed']
-    # is_reversed = params['is_reversed']
-    # is_offtrack = params['is_offtrack']
+    track_width = params['track_width']
+    distance_from_center = params['distance_from_center']
+    track_width_half = track_width * 0.5
 
-
-    if not all_wheels_on_track:
+    # 車体の中心がコース幅を超えていれば減点（少しだけ超えててもok）
+    if track_width_half - distance_from_center < -0.05:
         return 1e-3
     
-    if is_left_of_center and steering_angle > 20:
-        # 左車線で左に急ハンドル == コースアウト
-        return 1e-3
-    elif not is_left_of_center and steering_angle < -20:
-        # 右車線で右に急ハンドル == コースアウト
-        return 1e-3
-
-    if speed <= 4:
-        reward = 1.0
-    elif speed <= 3:
-        reward = 0.7
-    elif speed <= 2:
-        reward = 0.3
-    elif speed <= 1:
-        reward = 1e-3
+    reward = speed_reward(reward, speed)
+    reward = prevent_zigzag(reward, abs_steering_angle)
     
     return float(reward)
+
+
+def prevent_zigzag(reward, abs_steering_angle):
+    ABS_STEERING_THRESHOLD = 18
+    if abs_steering_angle > ABS_STEERING_THRESHOLD:
+        reward *= 0.8
+    return reward
+
+
+def speed_reward(reward, speed):
+    if speed <= 1:
+        reward *= 0.3
+    elif speed <= 1.5:
+        reward *= 0.5
+    elif speed <= 2:
+        reward *= 0.6
+    elif speed <= 2.5:
+        reward *= 0.7
+    elif speed <= 3:
+        reward *= 0.8
+    elif speed <= 3.5:
+        reward *= 0.9
+    elif speed <= 4:
+        reward *= 1.0
+    else:
+        reward = reward
+
+    return reward
